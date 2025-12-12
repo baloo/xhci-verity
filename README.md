@@ -2,7 +2,7 @@
 
 
 ```
-cp config ../linux/.config
+cp .config ../linux/.config
 cd ../linux
 make olddefconfig
 make -j 16
