@@ -17,11 +17,13 @@ let
     Verity=hash
     VerityMatchKey=root
     Minimize=best
+    VerityDataBlockSizeBytes=512
+    VerityHashBlockSizeBytes=512
   '';
   repartConfig = runCommand "repart.conf.d" {} ''
     mkdir $out
-    ln -s ${part-root} $out/10-root.conf
-    ln -s ${part-root-hash} $out/20-root-hash.conf
+    ln -s ${part-root-hash} $out/10-root-hash.conf
+    ln -s ${part-root} $out/20-root.conf
   '';
 
   diskImage = runCommand "image" { 
@@ -49,25 +51,85 @@ let
 
   fio-config = writeText "randomread.fio" ''
     [global]
-    bs=4K
-    iodepth=64
-    direct=1
-    ioengine=libaio
+    loops=3
+    #iodepth=64
+    ioengine=io_uring
     group_reporting
-    time_based
-    runtime=120
+    #time_based
+    #runtime=20
     numjobs=4
     name=raw-randread
     rw=randread
-    							
-    [job]
+
+    [job_fs_direct]
+    bsrange=64-16k
+    direct=0
+    blocksize_unaligned
+    filename=/target/tmp/data/target
+    size=2M
+    ioengine=sync
+    prio=0
+
+    [job_fs_direct_seq]
+    bsrange=64-16k
+    direct=0
+    blocksize_unaligned
+    filename=/usr/tmp/data/target
+    size=100%
+    ioengine=sync
+    readwrite=read
+    prio=7
+
+    [job_fs_remount]
+    bsrange=64-16k
+    direct=0
+    blocksize_unaligned
     filename=/nix/store/tmp/data/target
     size=100%
+
+    [job_direct]
+    bs=4K
+    direct=1
+    filename=/dev/mapper/root
+    size=100%
+
+    [job_direct_512]
+    bs=512
+    direct=1
+    filename=/dev/mapper/root
+    size=100%
+
+    [job_direct_seq]
+    bs=4K
+    direct=1
+    filename=/dev/mapper/root
+    size=100%
+    rw=read
+
+
+    [job_direct_merkle]
+    bs=4K
+    direct=1
+    filename=/dev/sda1
+    size=2M
+
+    [job_direct_data]
+    bs=4K
+    direct=1
+    filename=/dev/sda2
+    size=2M
   '';
 
-  init = writeShellScript "init" ''
-    export PATH=${lib.makeBinPath [ cryptsetup util-linux gnused coreutils findutils fio ]}
+  init = writeScript "init" ''
+    #!${pkgsStatic.busybox}/bin/sh
 
+    export PATH=${
+      lib.makeBinPath (with pkgsStatic; [
+        busybox
+        cryptsetup
+        fio
+      ])
+    }
     set -x
 
     # Takes a second for /dev/sda to pop in
@@ -76,17 +138,28 @@ let
     mount -t proc proc /proc
     mount -t devtmpfs none /dev
 
+    for o in $(</proc/cmdline); do
+      case "$o" in
+        roothash=*)
+          set -- $(IFS==; echo $o)
+          roothash=$2
+          ;;
+      esac
+    done
+
     roothash=$(sed -r 's/.*roothash=([^ ]+) ?.*/\1/' /proc/cmdline)
-    veritysetup --panic-on-corruption open /dev/sda1 root /dev/sda2 "''${roothash}"
+    veritysetup --panic-on-corruption open /dev/sda2 root /dev/sda1 "''${roothash}"
 
-    find /dev -ls
+    #find /dev -ls
 
-    mkdir /target
-    mount /dev/mapper/root /target
+    mkdir /usr
+    mount -t erofs /dev/mapper/root /usr
     mkdir -p /nix/store/tmp
-    mount -o bind /target/tmp /nix/store/tmp
+    mount -o bind /usr/tmp /nix/store/tmp
 
-    find /target  /nix/store/tmp -ls
+    mount
+
+    #find /target  /nix/store/tmp -ls
 
     #dd if=/dev/mapper/root of=/dev/null bs=4M
 
