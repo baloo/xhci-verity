@@ -53,7 +53,7 @@ let
     [global]
     loops=3
     #iodepth=64
-    ioengine=io_uring
+    ioengine=libaio
     group_reporting
     #time_based
     #runtime=20
@@ -133,7 +133,7 @@ let
     set -x
 
     # Takes a second for /dev/sda to pop in
-    sleep 1
+    sleep 3
 
     mount -t proc proc /proc
     mount -t devtmpfs none /dev
@@ -148,7 +148,7 @@ let
     done
 
     roothash=$(sed -r 's/.*roothash=([^ ]+) ?.*/\1/' /proc/cmdline)
-    veritysetup --panic-on-corruption open /dev/sda2 root /dev/sda1 "''${roothash}"
+    veritysetup --restart-on-corruption open /dev/sda2 root /dev/sda1 "''${roothash}"
 
     #find /dev -ls
 
