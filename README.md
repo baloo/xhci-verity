@@ -37,3 +37,8 @@ $ ./result/bin/xhci-run ../linux/arch/x86/boot/bzImage
 [   25.800336]  </TASK>
 ```
 
+
+https://www.kernel.org/doc/html/latest/process/debugging/gdb-kernel-debugging.html
+```
+gdb --eval-command="target remote :1234" --eval-command="b verity_handle_err" --eval-command="c" vmlinux
+```

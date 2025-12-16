@@ -22,7 +22,7 @@ writeShellApplication {
         \
         -kernel "''${kernel}" \
         -initrd "${assets}/initrd" \
-        -append "console=ttyS0 panic=-1 roothash=''${roothash} nokaslr" \
+        -append "console=ttyS0 panic=-1 roothash=''${roothash} nokaslr noexec=off" \
         \
         -display none \
         -serial stdio \
