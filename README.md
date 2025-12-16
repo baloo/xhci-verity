@@ -2,7 +2,7 @@
 
 This builds an initrd and a disk image with nix, if you don't have nix,
 sample images may be found in:
-https://github.com/baloo/xhci-verity/releases/tag/2025.12.16
+https://github.com/baloo/xhci-verity/releases/tag/2025.12.16-5.4-support
 
 ```
 cp .config ../linux/.config
