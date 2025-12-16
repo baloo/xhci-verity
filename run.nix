@@ -22,7 +22,7 @@ writeShellApplication {
         \
         -kernel "''${kernel}" \
         -initrd "${assets}/initrd" \
-        -append "console=ttyS0 panic=-1 roothash=''${roothash}" \
+        -append "console=ttyS0 panic=-1 roothash=''${roothash} nokaslr" \
         \
         -display none \
         -serial stdio \
@@ -34,7 +34,9 @@ writeShellApplication {
         -usb -device usb-tablet,bus=usb-bus.0 \
         \
         -m 2G -cpu max -smp 1 \
-        -no-reboot
+        -no-reboot \
+        \
+        -gdb tcp::1234
 
     rm /tmp/image
   '';
